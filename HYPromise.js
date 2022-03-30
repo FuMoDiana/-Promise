@@ -1,7 +1,18 @@
+//让reject和resolve不能同时被执行？设置变量status来记录状态
 const PROMISE_STATUS_PENDING = 'pending';
 const PROMISE_STATUS_FULFILLED = 'fulfilled';
 const PROMISE_STATUS_REJECTED = 'rejected';
-//让reject和resolve不能同时被执行？设置变量status来记录状态
+
+//封装一个工具函数
+function execFunctionWithCatchError(execFn, value, resolve, reject) {
+    try {
+        const result = execFn(value);
+        resolve(result);
+    } catch (err) {
+        reject(err);
+    }
+}
+
 
 class HYPromise {
     constructor(executor) {
@@ -58,41 +69,45 @@ class HYPromise {
         return new HYPromise((resolve, reject) => {
             //1.如果在then调用时，状态已经确定下来
             if (this.status === PROMISE_STATUS_FULFILLED && onFulfilled) {
-                try {
-                    const value = onFulfilled(this.value);
-                    resolve(value);
+                // try {
+                //     const value = onFulfilled(this.value);
+                //     resolve(value);
 
-                } catch (error) {
-                    reject(error);
-                }
+                // } catch (error) {
+                //     reject(error);
+                // }
+                execFunctionWithCatchError(onFulfilled, this.value, resolve, reject);
             }
             if (this.status === PROMISE_STATUS_REJECTED && onRejected) {
-                try {
-                    const reason = onRejected(this.reason);
-                    resolve(reason);
-                } catch (error) {
-                    reject(error);
-                }
+                // try {
+                //     const reason = onRejected(this.reason);
+                //     resolve(reason);
+                // } catch (error) {
+                //     reject(error);
+                // }
+                execFunctionWithCatchError(onRejected, this.reason, resolve, reject);
             }
             /*
             2.将成功回调和失败回调且保存值传入下一个调用的过程函数存入数组中,
             保证每个需要被回调的函数返回的值都保存下来并在下一个promise执行
             */
             this.onFulfilledFns.push(() => {
-                try {
-                    const value = onFulfilled(this.value);
-                    resolve(value);
-                } catch (error) {
-                    reject(error);
-                }
+                // try {
+                //     const value = onFulfilled(this.value);
+                //     resolve(value);
+                // } catch (error) {
+                //     reject(error);
+                // }
+                execFunctionWithCatchError(onFulfilled, this.value, resolve, reject);
             })
             this.onRejectedFns.push(() => {
-                try {
-                    const reason = onRejected(this.reason);
-                    resolve(reason);
-                } catch (err) {
-                    reject(err);
-                }
+                // try {
+                //     const reason = onRejected(this.reason);
+                //     resolve(reason);
+                // } catch (err) {
+                //     reject(err);
+                // }
+                execFunctionWithCatchError(onRejected, this.reason, resolve, reject);
             });
         })
 
@@ -108,10 +123,10 @@ const promise = new HYPromise((resolve, reject) => {
 //调用then方法，实现链式调用
 promise.then(res => {
     console.log("res1:", res);
-    //return "第一个promise的resolve的返回值";
-    throw new Error("err message");
+    return "第一个promise的resolve的返回值";
 }, err => {
     console.log("err1:", err);
+    //throw new Error("err message");
 }).then(res => {
     console.log("res2:", res);
 }, err => {
