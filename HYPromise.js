@@ -61,74 +61,50 @@ class HYPromise {
     }
 
     then(onFulfilled, onRejected) {
-        /*
-        3.实现then的链式调用：return一个promise,前文中无论是resolve还是reject返回
-        的值都是作为以一个promise的resolve，除非是reject中throw了一个err，才会使得下一个
-        promise变成reject/catch到 。
-        */
+        //如果使用了catch方法，则抛出上一个promise的异常给下一个promise的catch
+        onRejected = onRejected || (err => { throw err })
+            /*
+            3.实现then的链式调用：return一个promise,前文中无论是resolve还是reject返回
+            的值都是作为以一个promise的resolve，除非是reject中throw了一个err，才会使得下一个
+            promise变成reject/catch到 。
+            */
         return new HYPromise((resolve, reject) => {
             //1.如果在then调用时，状态已经确定下来
             if (this.status === PROMISE_STATUS_FULFILLED && onFulfilled) {
-                // try {
-                //     const value = onFulfilled(this.value);
-                //     resolve(value);
-
-                // } catch (error) {
-                //     reject(error);
-                // }
                 execFunctionWithCatchError(onFulfilled, this.value, resolve, reject);
             }
             if (this.status === PROMISE_STATUS_REJECTED && onRejected) {
-                // try {
-                //     const reason = onRejected(this.reason);
-                //     resolve(reason);
-                // } catch (error) {
-                //     reject(error);
-                // }
                 execFunctionWithCatchError(onRejected, this.reason, resolve, reject);
             }
             /*
             2.将成功回调和失败回调且保存值传入下一个调用的过程函数存入数组中,
             保证每个需要被回调的函数返回的值都保存下来并在下一个promise执行
             */
-            this.onFulfilledFns.push(() => {
-                // try {
-                //     const value = onFulfilled(this.value);
-                //     resolve(value);
-                // } catch (error) {
-                //     reject(error);
-                // }
+            if (onFulfilled) this.onFulfilledFns.push(() => {;
                 execFunctionWithCatchError(onFulfilled, this.value, resolve, reject);
             })
-            this.onRejectedFns.push(() => {
-                // try {
-                //     const reason = onRejected(this.reason);
-                //     resolve(reason);
-                // } catch (err) {
-                //     reject(err);
-                // }
+            if (onRejected) this.onRejectedFns.push(() => {
                 execFunctionWithCatchError(onRejected, this.reason, resolve, reject);
             });
         })
 
     }
+
+    catch (onRejected) {
+        this.then(undefined, onRejected);
+    }
 }
 
 const promise = new HYPromise((resolve, reject) => {
     //当前promise的resolve的调用值应该是上一个promise的resolve的返回值
-    resolve("resolve11111");
+    // resolve("resolve11111");
     reject("reject11111")
 })
 
-//调用then方法，实现链式调用
+//调用promise的catch方法
 promise.then(res => {
-    console.log("res1:", res);
-    return "第一个promise的resolve的返回值";
-}, err => {
-    console.log("err1:", err);
-    //throw new Error("err message");
-}).then(res => {
-    console.log("res2:", res);
-}, err => {
-    console.log("err2:", err);
+    console.log("res:", res);
+    return "123";
+}).catch(err => {
+    console.log("err:", err);
 })
