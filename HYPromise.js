@@ -117,12 +117,92 @@ class HYPromise {
         return new HYPromise((resolve, reject) => { reject(reason) });
     }
 
+    //传入promise数组，全部成功则一起返回。遇到失败则只返回失败部分
+    static all(promises) {
+            return new HYPromise((resolve, reject) => {
+                const values = [];
+                promises.forEach(promise => {
+                    promise.then(res => {
+                        values.push(res);
+                        if (values.length === promises.length) {
+                            resolve(values);
+                        }
+                    }, err => {
+                        reject(err);
+                    })
+                })
+            })
+        }
+        //allSettled不执行reject，返回的是promises中所有promise的执行结果和状态（pending/fulfilled/rejected）
+    static allSettled(promises) {
+        return new HYPromise((resolve) => {
+            const results = [];
+            promises.forEach(promise => {
+                promise.then(res => {
+                    results.push({ status: PROMISE_STATUS_FULFILLED, value: res });
+                    if (results.length === promises.length) resolve(results);
+                }, err => {
+                    results.push({ status: PROMISE_STATUS_REJECTED, value: err });
+                    if (results.length === promises.length) resolve(results);
+                })
+            })
+        })
+    }
+
+    //rece方法,只要有结果就返回，无论reject/resolve
+    static race(promises) {
+        return new HYPromise((resolve, reject) => {
+            promises.forEach(promise => {
+                promise.then(res => {
+                        resolve(res);
+                    }, err => {
+                        reject(err);
+                    })
+                    //promise.then(resolve,reject)与上述代码功能相同
+            })
+        })
+    }
+
+    //any方法:all方法相反
+    //reject等所有都reject才执行,且返回一个存放了所有错误信息的类AggreateError(node暂时不支持);
+    //有一个resolve就返回。
+    static any(promises) {
+        return new HYPromise((resolve, reject) => {
+            const reasons = [];
+            promises.forEach(promise => {
+                promise.then(res => {
+                    resolve(res);
+                }, err => {
+                    reasons.push(err);
+                    if (reasons.length === promises.length) {
+                        reject(new AggregateError(reasons));
+                    }
+                })
+            })
+        })
+    }
+
 }
-//测试静态方法
-HYPromise.resolve("hello world").then(res => {
-    console.log(res);
+
+const p1 = new Promise((resolve, reject) => {
+    setTimeout(() => {
+        resolve(1111)
+    }, 1000)
+})
+const p2 = new Promise((resolve, reject) => {
+    setTimeout(() => {
+        resolve(2222)
+    }, 2000)
+})
+const p3 = new Promise((resolve, reject) => {
+    setTimeout(() => {
+        resolve(3333)
+    }, 300)
 })
 
-HYPromise.reject("ERR message").then(res => {}, err => {
+//race方法测试
+HYPromise.any([p1, p2, p3]).then(res => {
+    console.log(res);
+}).catch(err => {
     console.log(err);
 })
